@@ -18,12 +18,13 @@ show_menu() {
     echo "-----------------------------------------"
 }
 
-# Funksjon for å installere systemd-tjenesten (FORBEDRET VERSJON)
+# Funksjon for å installere systemd-tjenesten (ENDELIG VERSJON)
 install_service() {
-    # Finn den faktiske brukeren som kjørte sudo, ikke root
-    local run_user=${SUDO_USER:-$(whoami)}
+    # Vi legger til root i docker-gruppen for å tilfredsstille scriptets sjekk
+    echo "Ensuring user 'root' is in the 'docker' group..."
+    sudo usermod -aG docker root
     
-    echo "Installing Nosana service to run as user: ${run_user}"
+    echo "Installing Nosana service to run as user: root"
     if [ -f "$SERVICE_FILE" ]; then
         echo "Service file already exists. Re-creating it."
     fi
@@ -36,10 +37,11 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
+# DENNE LINJEN ER LØSNINGEN: Gir tjenesten et komplett miljø
+Environment="PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+
 ExecStart=/bin/bash -c "wget -qO- https://nosana.com/start.sh | /bin/bash"
-# Kjør som brukeren som installerte, ikke root
-User=${run_user}
-Group=$(id -gn ${run_user})
+User=root
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -55,8 +57,8 @@ EOF
     sudo systemctl enable --now ${SERVICE_NAME}
 
     echo ""
-    echo "Nosana service has been installed to run as '${run_user}' and started."
-    echo "It will now automatically start on every reboot."
+    echo "Nosana service has been installed and started."
+    echo "A reboot is recommended to ensure group changes are fully applied."
     echo "Press Enter to continue."
     read
 }
