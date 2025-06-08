@@ -11,16 +11,16 @@ A simple Bash script for managing the Nosana Node as a `systemd` service on Linu
 ## How to Use
 
 1.  **Clone the repository**
-    Open your terminal and clone this repository to your machine. Replace `<your-username>/<your-repo>` with the actual URL.
+    Open your terminal and clone this repository to your machine.
 
     ```bash
-    git clone https://github.com/<your-username>/<your-repo>.git
+    git clone https://github.com/nosana-ci/service-manager.git
     ```
 
 2.  **Navigate to the directory**
 
     ```bash
-    cd <your-repo>
+    cd service-manager
     ```
 
 3.  **Make the script executable**
@@ -58,5 +58,19 @@ This option stops the running Nosana service and disables it from starting autom
 ### 4. Enable service
 This option will enable the Nosana service to start on boot and start it immediately. Useful if you have previously disabled it.
 
-### 5. Exit
+### 5. Update Environment Variables
+This option allows you to update the environment variables for the Nosana Node. It will:
+*   Prompt you to enter the new environment variables.
+*   Update the `nosana.service` file with the new environment variables.
+*   Reload `systemd`.
+*   Restart the Nosana service to apply the changes.
+
+### 6. Update Node
+This option allows you to update the Nosana Node to the latest version. It will:
+*   Stop the Nosana service.
+*   Download the latest version of the Nosana Node.
+*   Replace the existing Nosana Node executable with the new version.
+*   Start the Nosana service.
+
+### 7. Exit
 Exits the script.
