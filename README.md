@@ -14,7 +14,7 @@ A simple Bash script for managing the Nosana Node as a `systemd` service on Linu
     Open your terminal and clone this repository to your machine.
 
     ```bash
-    git clone https://github.com/nosana-ci/service-manager.git
+    [git clone https://github.com/nosana-ci/service-manager.git](https://github.com/Pukerud/NosanaMenu.git)
     ```
 
 2.  **Navigate to the directory**
