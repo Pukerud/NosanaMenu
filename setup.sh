@@ -18,12 +18,11 @@ show_menu() {
     echo "-----------------------------------------"
 }
 
-# Funksjon for å installere systemd-tjenesten
+# Funksjon for å installere systemd-tjenesten (ROBUST VERSJON)
 install_service() {
     echo "Installing Nosana service..."
-    if [ -f "$SERVICE_FILE" ]; then
-        echo "Service file already exists. Re-creating it."
-    fi
+    # Sikrer at root er i docker-gruppen, bare i tilfelle
+    sudo usermod -aG docker root &>/dev/null
 
     # Opprett tjenestefilen med sudo
     sudo tee "$SERVICE_FILE" > /dev/null <<EOF
@@ -33,7 +32,10 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/bin/bash -c "wget -qO- https://nosana.com/start.sh | /bin/bash"
+# DENNE KOMMANDOEN ER LØSNINGEN:
+# Først laster vi ned scriptet, SÅ kjører vi det. Enkelt og robust.
+ExecStart=/bin/bash -c "wget -qO /tmp/nosana-start.sh https://nosana.com/start.sh && /bin/bash /tmp/nosana-start.sh"
+
 User=root
 Restart=always
 RestartSec=10
@@ -50,8 +52,7 @@ EOF
     sudo systemctl enable --now ${SERVICE_NAME}
 
     echo ""
-    echo "Nosana service has been installed and started."
-    echo "It will now automatically start on every reboot."
+    echo "Nosana service has been installed with a robust startup command."
     echo "Press Enter to continue."
     read
 }
