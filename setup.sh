@@ -22,6 +22,26 @@ show_menu() {
 install_service() {
     echo "Installing Nosana service..."
 
+    echo "Please enter the username that will run the Nosana service."
+    echo "This user must be a member of the 'docker' group."
+    DEFAULT_USER=${SUDO_USER:-$(logname)}
+    if [ "$DEFAULT_USER" = "root" ]; then
+        DEFAULT_USER="nosana"
+    fi
+    read -p "Enter username [default: $DEFAULT_USER]: " NOSANA_USER
+    NOSANA_USER=${NOSANA_USER:-$DEFAULT_USER}
+
+    # Check if user is in docker group
+    if ! getent group docker | grep -qw "$NOSANA_USER"; then
+        echo "Error: User '$NOSANA_USER' is not a member of the 'docker' group."
+        echo "Please add the user to the 'docker' group first. Example: sudo usermod -aG docker $NOSANA_USER"
+        echo "You may need to log out and log back in for the group changes to take effect."
+        echo "Aborting service installation."
+        echo "Press Enter to continue."
+        read
+        return 1
+    fi
+
     # Opprett tjenestefilen med sudo
     sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -35,7 +55,7 @@ Wants=network-online.target
 # Dette skaper et miljø som er identisk med en manuell kjøring.
 ExecStart=/bin/bash -ic "wget -qO- https://nosana.com/start.sh | /bin/bash"
 
-User=root
+User=$NOSANA_USER
 Restart=always
 RestartSec=10
 StandardOutput=journal
