@@ -18,9 +18,12 @@ show_menu() {
     echo "-----------------------------------------"
 }
 
-# Funksjon for å installere systemd-tjenesten
+# Funksjon for å installere systemd-tjenesten (FORBEDRET VERSJON)
 install_service() {
-    echo "Installing Nosana service..."
+    # Finn den faktiske brukeren som kjørte sudo, ikke root
+    local run_user=${SUDO_USER:-$(whoami)}
+    
+    echo "Installing Nosana service to run as user: ${run_user}"
     if [ -f "$SERVICE_FILE" ]; then
         echo "Service file already exists. Re-creating it."
     fi
@@ -34,7 +37,9 @@ Wants=network-online.target
 
 [Service]
 ExecStart=/bin/bash -c "wget -qO- https://nosana.com/start.sh | /bin/bash"
-User=root
+# Kjør som brukeren som installerte, ikke root
+User=${run_user}
+Group=$(id -gn ${run_user})
 Restart=always
 RestartSec=10
 StandardOutput=journal
@@ -50,7 +55,7 @@ EOF
     sudo systemctl enable --now ${SERVICE_NAME}
 
     echo ""
-    echo "Nosana service has been installed and started."
+    echo "Nosana service has been installed to run as '${run_user}' and started."
     echo "It will now automatically start on every reboot."
     echo "Press Enter to continue."
     read
