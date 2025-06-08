@@ -1,62 +1,76 @@
 # Nosana Service Manager
 
-Et enkelt BASH-script for å administrere Nosana Node som en `systemd`-tjeneste på Linux. Dette lar Nosana-scriptet starte automatisk ved oppstart og gjør det enkelt å administrere.
+A simple Bash script for managing the Nosana Node as a `systemd` service on Linux. This allows the Nosana Node to start automatically at boot and simplifies its management.
 
-## Forutsetninger
+## Prerequisites
 
-*   En Linux-distribusjon som bruker `systemd` (f.eks. Ubuntu, Debian, Fedora, CentOS).
-*   Du må ha `sudo`-rettigheter.
-*   `git` må være installert for å klone repository-et.
+*   A Linux distribution that uses `systemd` (e.g., Ubuntu, Debian, Fedora, CentOS).
+*   You must have `sudo` privileges.
+*   `git` must be installed to clone the repository.
 
-## Hvordan bruke
+## How to Use
 
-1.  **Klon repository-et**
-    Åpne terminalen din og klon dette repository-et til maskinen din. Bytt ut `<ditt-brukernavn>/<ditt-repo>` med den faktiske URL-en.
-
-    ```bash
-    git clone https://github.com/<ditt-brukernavn>/<ditt-repo>.git
-    ```
-
-2.  **Naviger til mappen**
+1.  **Clone the repository**
+    Open your terminal and clone this repository to your machine.
 
     ```bash
-    cd <ditt-repo>
+    git clone https://github.com/nosana-ci/service-manager.git
     ```
 
-3.  **Gjør scriptet kjørbart**
-    Gi `setup.sh`-scriptet kjøretillatelser.
+2.  **Navigate to the directory**
+
+    ```bash
+    cd service-manager
+    ```
+
+3.  **Make the script executable**
+    Give the `setup.sh` script execution permissions.
 
     ```bash
     chmod +x setup.sh
     ```
 
-4.  **Kjør scriptet**
-    Utfør scriptet. Det vil be om `sudo`-passord ved behov.
+4.  **Run the script**
+    Execute the script. It will prompt for your `sudo` password if required.
 
     ```bash
     ./setup.sh
     ```
 
-## Menyvalg
+## Menu Options
 
-Etter at du har kjørt scriptet, vil du se en meny med følgende valg:
+After running the script, you will see a menu with the following options:
 
 ### 1. Install Nosana Auto Start
-Dette valget oppretter en `systemd`-tjenestefil for Nosana-scriptet. Det vil:
-*   Plassere en tjenestefil i `/etc/systemd/system/nosana.service`.
-*   Laste inn `systemd` på nytt.
-*   Aktivere tjenesten til å starte automatisk ved oppstart.
-*   Starte tjenesten umiddelbart.
+This option creates a `systemd` service file for the Nosana Node. It will:
+*   Place a service file in `/etc/systemd/system/nosana.service`.
+*   Reload `systemd`.
+*   Enable the service to start automatically on boot.
+*   Start the service immediately.
 
 ### 2. View current status
-Dette valget viser en live logg fra Nosana-tjenesten. Det bruker `journalctl` for å strømme outputen direkte til terminalen din, noe som er nyttig for å overvåke nodens aktivitet i sanntid.
-*   Trykk `Ctrl+C` for å avslutte loggvisningen og returnere til menyen.
+This option displays a live log from the Nosana service. It uses `journalctl` to stream the output directly to your terminal, which is useful for monitoring the node's activity in real-time.
+*   Press `Ctrl+C` to exit the log view and return to the menu.
 
 ### 3. Disable service
-Dette valget stopper den kjørende Nosana-tjenesten og deaktiverer den fra å starte automatisk ved oppstart.
+This option stops the running Nosana service and disables it from starting automatically on boot.
 
 ### 4. Enable service
-Dette valget vil aktivere Nosana-tjenesten til å starte ved oppstart og starte den umiddelbart. Nyttig hvis du tidligere har deaktivert den.
+This option will enable the Nosana service to start on boot and start it immediately. Useful if you have previously disabled it.
 
-### 5. Exit
-Avslutter scriptet.
+### 5. Update Environment Variables
+This option allows you to update the environment variables for the Nosana Node. It will:
+*   Prompt you to enter the new environment variables.
+*   Update the `nosana.service` file with the new environment variables.
+*   Reload `systemd`.
+*   Restart the Nosana service to apply the changes.
+
+### 6. Update Node
+This option allows you to update the Nosana Node to the latest version. It will:
+*   Stop the Nosana service.
+*   Download the latest version of the Nosana Node.
+*   Replace the existing Nosana Node executable with the new version.
+*   Start the Nosana service.
+
+### 7. Exit
+Exits the script.
