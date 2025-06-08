@@ -10,34 +10,11 @@ A simple Bash script for managing the Nosana Node as a `systemd` service on Linu
 
 ## How to Use
 
-1.  **Clone the repository**
-    Open your terminal and clone this repository to your machine.
+Open your terminal and run the following command to clone the repository, navigate into the directory, make the setup script executable, and run it. This single command automates the initial setup process. It will prompt for your `sudo` password if required for the script execution.
 
-    ```bash
-
-    git clone https://github.com/Pukerud/NosanaMenu.git
-
-    ```
-
-2.  **Navigate to the directory**
-
-    ```bash
-    cd NosanaMenu
-    ```
-
-3.  **Make the script executable**
-    Give the `setup.sh` script execution permissions.
-
-    ```bash
-    chmod +x setup.sh
-    ```
-
-4.  **Run the script**
-    Execute the script. It will prompt for your `sudo` password if required.
-
-    ```bash
-    ./setup.sh
-    ```
+```bash
+git clone https://github.com/Pukerud/NosanaMenu.git && cd NosanaMenu && chmod +x setup.sh && ./setup.sh
+```
 
 ## Menu Options
 
