@@ -105,21 +105,24 @@ view_log() {
 
     echo "Service is configured to run as user: $NOSANA_USER"
 
+    echo "Cleaning up dead screen sessions (if any) for user $NOSANA_USER..."
+    sudo -u "$NOSANA_USER" screen -wipe >/dev/null 2>&1 # Suppress output unless there's an error from sudo itself
+
     # Check if screen session exists for the NOSANA_USER
-    # The grep output is suppressed by -q, we only care about the exit status.
-    if sudo -u "$NOSANA_USER" screen -ls | grep -q "\.nosana"; then # screen names are prefixed with PID
+    # grep for a line that starts with a PID (digits), then a dot, then "nosana" and is marked (Attached) or (Detached)
+    if sudo -u "$NOSANA_USER" screen -ls | grep -q -E "[0-9]+\.nosana\s+\((Attached|Detached)\)"; then
         echo "Found active Nosana screen session. Attaching..."
         echo "Press Ctrl+A then D to detach from the screen session."
         echo "-----------------------------------------"
         # Attach to the screen session as the NOSANA_USER
         sudo -u "$NOSANA_USER" screen -r nosana
         echo "-----------------------------------------"
-        echo "Screen session detached. Press Enter to return to the menu."
+        echo "Screen session detached." # This message appears after successful detach
     else
-        echo "Nosana screen session 'nosana' is not running or not found for user '$NOSANA_USER'."
-        echo "You can try starting/enabling the service (Option 4)."
+        echo "Nosana screen session 'nosana' is not running or could not be uniquely identified for user '$NOSANA_USER'."
+        echo "You can try starting/enabling the service (Option 5 in the menu)." # Adjusted option number
         echo "For detailed service logs, you can use: journalctl -u ${SERVICE_NAME}"
-        echo "If the service is running but the screen session is missing, it might indicate an issue during service startup."
+        echo "Or check the overall service status (Option 3 in the menu)."      # Adjusted option number
     fi
     echo ""
     echo "Press Enter to return to the menu."
