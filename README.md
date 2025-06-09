@@ -32,7 +32,8 @@ This option creates a `systemd` service file for the Nosana Node. It will:
 ### 2. View Live Status / Attach to Screen
 This option allows you to connect to the `screen` session where the Nosana Node is running.
 *   It first reads the `/etc/systemd/system/nosana.service` file to determine the `User` the service (and thus the screen session) runs as.
-*   It then checks if a `screen` session named `nosana` exists for that user (e.g., using `sudo -u <USER> screen -ls | grep '\.nosana'`).
+*   Before checking for an active session, the script attempts to clean up any dead screen session listings for that user by running `sudo -u <USER> screen -wipe`. This helps improve reliability if previous sessions did not terminate cleanly.
+*   It then checks if an active `screen` session named `nosana` exists for that user (e.g., using `sudo -u <USER> screen -ls | grep '[0-9]+\.nosana\s+(Attached|Detached)'`).
 *   If the session is found, it will attempt to attach to it using `sudo -u <USER> screen -r nosana`.
 *   If the session is not found, an informative message will be displayed, guiding you to check the service status or logs.
 *   To detach from the screen session (leaving the Nosana Node running in the background), press `Ctrl+A` then `D`.
