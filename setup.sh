@@ -3,12 +3,13 @@
 # Definer navnet på tjenesten
 SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
+SCRIPT_VERSION="1.0.0"
 
 # Funksjon for å vise menyen
 show_menu() {
     clear
     echo "========================================="
-    echo "      Nosana Service Manager"
+    echo "      Nosana Service Manager v${SCRIPT_VERSION}"
     echo "========================================="
     echo "1. Install Nosana Auto-Start Service"
     echo "2. View Live Status / Attach to Screen"
@@ -58,7 +59,7 @@ Wants=network-online.target
 # DENNE KOMMANDOEN ER LØSNINGEN:
 # Vi tvinger shellen til å være INTERAKTIV (-i)
 # Dette skaper et miljø som er identisk med en manuell kjøring.
-ExecStart=/usr/bin/screen -S nosana -dm bash -c "wget -qO- https://nosana.com/start.sh | bash"
+ExecStart=/usr/bin/screen -S nosana -dm bash -ic "wget -qO- https://nosana.com/start.sh | bash; exec bash"
 
 User=$NOSANA_USER
 Restart=always
