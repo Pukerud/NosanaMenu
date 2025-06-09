@@ -27,9 +27,12 @@ This option creates a `systemd` service file for the Nosana Node. It will:
 *   Enable the service to start automatically on boot.
 *   Start the service immediately.
 
-### 2. View current status
-This option displays a live log from the Nosana service. It uses `journalctl` to stream the output directly to your terminal, which is useful for monitoring the node's activity in real-time.
-*   Press `Ctrl+C` to exit the log view and return to the menu.
+### 2. View Live Status (via Screen)
+This option allows you to view the live output of the Nosana Node, which now runs in a `screen` session.
+*   The service runs in a detached `screen` session named `nosana`.
+*   To attach to this session and view the live output, the script will run `screen -r nosana`.
+*   To detach from the screen session (and keep the node running in the background), press `Ctrl+A` then `D`.
+*   After detaching, you'll be prompted to press Enter to return to the menu.
 
 ### 3. Disable service
 This option stops the running Nosana service and disables it from starting automatically on boot.
