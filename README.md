@@ -1,6 +1,6 @@
 # Nosana Service Manager
 
-A simple Bash script for managing the Nosana Node as a `systemd` service on Linux. This allows the Nosana Node to start automatically at boot and simplifies its management.
+A simple Bash script for managing the Nosana Node as a `systemd` service on Linux. This allows the Nosana Node to start automatically at boot and simplifies its management. The script's menu now also displays its version number for easier reference when seeking support or tracking updates.
 
 ## Prerequisites
 
@@ -24,7 +24,7 @@ After running the script, you will see a menu with the following options:
 This option creates a `systemd` service file for the Nosana Node. It will:
 *   Prompt for a username to run the service (must be in the `docker` group).
 *   Install `screen` if it's not already present.
-*   Place a service file in `/etc/systemd/system/nosana.service`. The service is configured to run the Nosana start script within a detached `screen` session named `nosana` (e.g., `ExecStart=/usr/bin/screen -S nosana -dm bash -c "wget -qO- https://nosana.com/start.sh | bash"`).
+*   Place a service file in `/etc/systemd/system/nosana.service`. The service is configured to run the Nosana start script within a detached `screen` session named `nosana` (e.g., `ExecStart=/usr/bin/screen -S nosana -dm bash -ic "wget -qO- https://nosana.com/start.sh | bash; exec bash"`).
 *   Reload `systemd`.
 *   Enable the service to start automatically on boot.
 *   Start the service immediately.
