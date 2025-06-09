@@ -11,10 +11,11 @@ show_menu() {
     echo "      Nosana Service Manager"
     echo "========================================="
     echo "1. Install Nosana Auto-Start Service"
-    echo "2. View Live Log (Status)"
-    echo "3. Disable and Stop Service"
-    echo "4. Enable and Start Service"
-    echo "5. Exit"
+    echo "2. View Live Status / Attach to Screen"
+    echo "3. Check Nosana Service Status"
+    echo "4. Disable and Stop Service"
+    echo "5. Enable and Start Service"
+    echo "6. Exit"
     echo "-----------------------------------------"
 }
 
@@ -57,7 +58,7 @@ Wants=network-online.target
 # DENNE KOMMANDOEN ER LØSNINGEN:
 # Vi tvinger shellen til å være INTERAKTIV (-i)
 # Dette skaper et miljø som er identisk med en manuell kjøring.
-ExecStart=/usr/bin/screen -d -m -S nosana bash -c "wget -qO- https://nosana.com/start.sh | bash"
+ExecStart=/usr/bin/screen -S nosana -dm bash -c "wget -qO- https://nosana.com/start.sh | bash"
 
 User=$NOSANA_USER
 Restart=always
@@ -82,12 +83,57 @@ EOF
 
 # Funksjon for å se live logg
 view_log() {
-    echo "Attempting to attach to screen session 'nosana'..."
-    echo "Press Ctrl+A then D to detach from the screen session."
-    echo "-----------------------------------------"
-    screen -r nosana
+    echo "Checking for Nosana screen session..."
+
+    if [ ! -f "$SERVICE_FILE" ]; then
+        echo "Error: Service file $SERVICE_FILE not found."
+        echo "Please install the service first (Option 1)."
+        echo "Press Enter to continue."
+        read
+        return
+    fi
+
+    NOSANA_USER=$(grep -Po '^User=\K.*' "$SERVICE_FILE")
+
+    if [ -z "$NOSANA_USER" ]; then
+        echo "Error: Could not determine the user for the Nosana service from $SERVICE_FILE."
+        echo "The User= line might be missing or incorrectly formatted."
+        echo "Press Enter to continue."
+        read
+        return
+    fi
+
+    echo "Service is configured to run as user: $NOSANA_USER"
+
+    # Check if screen session exists for the NOSANA_USER
+    # The grep output is suppressed by -q, we only care about the exit status.
+    if sudo -u "$NOSANA_USER" screen -ls | grep -q "\.nosana"; then # screen names are prefixed with PID
+        echo "Found active Nosana screen session. Attaching..."
+        echo "Press Ctrl+A then D to detach from the screen session."
+        echo "-----------------------------------------"
+        # Attach to the screen session as the NOSANA_USER
+        sudo -u "$NOSANA_USER" screen -r nosana
+        echo "-----------------------------------------"
+        echo "Screen session detached. Press Enter to return to the menu."
+    else
+        echo "Nosana screen session 'nosana' is not running or not found for user '$NOSANA_USER'."
+        echo "You can try starting/enabling the service (Option 4)."
+        echo "For detailed service logs, you can use: journalctl -u ${SERVICE_NAME}"
+        echo "If the service is running but the screen session is missing, it might indicate an issue during service startup."
+    fi
     echo ""
-    echo "Screen session detached. Press Enter to return to the menu."
+    echo "Press Enter to return to the menu."
+    read
+}
+
+# Funksjon for å sjekke tjenestestatus
+check_service_status() {
+    echo "Checking Nosana service status (${SERVICE_NAME})..."
+    echo "-----------------------------------------"
+    systemctl status ${SERVICE_NAME} --no-pager
+    echo "-----------------------------------------"
+    echo "Status check complete."
+    echo "Press Enter to return to the menu."
     read
 }
 
@@ -120,13 +166,14 @@ enable_service() {
 # Hovedløkke for menyen
 while true; do
     show_menu
-    read -p "Choose an option [1-5]: " choice
+    read -p "Choose an option [1-6]: " choice
     case $choice in
         1) install_service ;;
         2) view_log ;;
-        3) disable_service ;;
-        4) enable_service ;;
-        5) echo "Exiting."; exit 0 ;;
+        3) check_service_status ;;
+        4) disable_service ;;
+        5) enable_service ;;
+        6) echo "Exiting."; exit 0 ;;
         *) echo "Invalid option. Please try again."; sleep 2 ;;
     esac
 done
