@@ -42,6 +42,10 @@ install_service() {
         return 1
     fi
 
+    # Installer screen
+    echo "Installing screen..."
+    sudo apt-get update && sudo apt-get install -y screen
+
     # Opprett tjenestefilen med sudo
     sudo tee "$SERVICE_FILE" > /dev/null <<EOF
 [Unit]
@@ -53,7 +57,7 @@ Wants=network-online.target
 # DENNE KOMMANDOEN ER LØSNINGEN:
 # Vi tvinger shellen til å være INTERAKTIV (-i)
 # Dette skaper et miljø som er identisk med en manuell kjøring.
-ExecStart=/bin/bash -ic "bash <(wget -qO- https://nosana.com/start.sh)"
+ExecStart=/usr/bin/screen -d -m -S nosana bash -c "wget -qO- https://nosana.com/start.sh | bash"
 
 User=$NOSANA_USER
 Restart=always
@@ -78,12 +82,12 @@ EOF
 
 # Funksjon for å se live logg
 view_log() {
-    echo "Showing live log for ${SERVICE_NAME}..."
-    echo "Press Ctrl+C to exit the log view."
+    echo "Attempting to attach to screen session 'nosana'..."
+    echo "Press Ctrl+A then D to detach from the screen session."
     echo "-----------------------------------------"
-    journalctl -u ${SERVICE_NAME} -f
+    screen -r nosana
     echo ""
-    echo "Log view exited. Press Enter to return to the menu."
+    echo "Screen session detached. Press Enter to return to the menu."
     read
 }
 
