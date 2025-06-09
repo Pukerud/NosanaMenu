@@ -53,7 +53,7 @@ Wants=network-online.target
 # DENNE KOMMANDOEN ER LØSNINGEN:
 # Vi tvinger shellen til å være INTERAKTIV (-i)
 # Dette skaper et miljø som er identisk med en manuell kjøring.
-ExecStart=/bin/bash -ic "wget -qO- https://nosana.com/start.sh | /bin/bash"
+ExecStart=/bin/bash -ic "bash <(wget -qO- https://nosana.com/start.sh)"
 
 User=$NOSANA_USER
 Restart=always
