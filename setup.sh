@@ -162,11 +162,11 @@ while true; do
     show_menu
     read -p "Choose an option [1-6]: " choice
     case $choice in
-        1) install_service ;;
-        2) view_log ;;
-        3) check_service_status ;;
-        4) disable_service ;;
-        5) enable_service ;;
+        1) eval install_service ;;
+        2) eval view_log ;;
+        3) eval check_service_status ;;
+        4) eval disable_service ;;
+        5) eval enable_service ;;
         6) echo "Exiting."; exit 0 ;;
         *) echo "Invalid option. Please try again."; sleep 2 ;;
     esac
