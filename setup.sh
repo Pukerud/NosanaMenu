@@ -5,12 +5,6 @@ SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
 SCRIPT_VERSION="1.0.0"
 
-# Non-interactive installation mode
-if [ "$1" = "install" ]; then
-    install_service
-    exit 0
-fi
-
 # Funksjon for å vise menyen
 show_menu() {
     clear
@@ -151,6 +145,12 @@ enable_service() {
     echo ""
     echo "Service has been enabled and started. It will now run on startup."
 }
+
+# Non-interactive installation mode
+if [ "$1" = "install" ]; then
+    install_service
+    exit 0
+fi
 
 # Hovedløkke for menyen
 while true; do
