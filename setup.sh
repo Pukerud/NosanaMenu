@@ -5,7 +5,7 @@ set -u
 # Definer navnet på tjenesten
 SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_VERSION="1.0.9"
+SCRIPT_VERSION="1.1.0"
 
 # Funksjon for å vise menyen
 show_menu() {
@@ -64,7 +64,7 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/bin/bash /tmp/nosana_start_script_downloaded.sh >> /tmp/nosana_run_log.txt 2>&1
+ExecStart=/bin/bash -c "wget -qO /tmp/nosana_start_script_downloaded.sh https://nosana.com/start.sh && chmod +x /tmp/nosana_start_script_downloaded.sh && /bin/bash /tmp/nosana_start_script_downloaded.sh >> /tmp/nosana_combined_run_log.txt 2>&1"
 User=$NOSANA_USER
 Restart=always
 RestartSec=10
