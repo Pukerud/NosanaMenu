@@ -22,6 +22,7 @@ show_menu() {
 
 # Funksjon for å installere systemd-tjenesten (INTERAKTIV VERSJON)
 install_service() {
+    echo "DEBUG: Starting install_service"
     echo "Installing Nosana service..."
 
     # Determine the user to run the service
@@ -80,6 +81,7 @@ EOF
 
 # Funksjon for å se live logg
 view_log() {
+    echo "DEBUG: Starting view_log"
     echo "Checking for Nosana screen session..."
 
     if [ ! -f "$SERVICE_FILE" ]; then
@@ -119,6 +121,7 @@ view_log() {
 
 # Funksjon for å sjekke tjenestestatus
 check_service_status() {
+    echo "DEBUG: Starting check_service_status"
     echo "Checking Nosana service status (${SERVICE_NAME})..."
     echo "-----------------------------------------"
     systemctl status ${SERVICE_NAME} --no-pager
@@ -128,6 +131,7 @@ check_service_status() {
 
 # Funksjon for å deaktivere tjenesten
 disable_service() {
+    echo "DEBUG: Starting disable_service"
     echo "Disabling and stopping the Nosana service..."
     sudo systemctl disable --now ${SERVICE_NAME}
     echo ""
@@ -136,6 +140,7 @@ disable_service() {
 
 # Funksjon for å aktivere tjenesten
 enable_service() {
+    echo "DEBUG: Starting enable_service"
     if [ ! -f "$SERVICE_FILE" ]; then
         echo "Service is not installed yet. Please install it first (Option 1)."
         return
