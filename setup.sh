@@ -1,9 +1,11 @@
-#!/bin/bash
+#!/usr/bin/env bash
+set -e
+set -u
 
 # Definer navnet på tjenesten
 SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_VERSION="1.0.0"
+SCRIPT_VERSION="1.0.1"
 
 # Funksjon for å vise menyen
 show_menu() {
