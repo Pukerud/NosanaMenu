@@ -5,21 +5,6 @@ SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
 SCRIPT_VERSION="1.0.0"
 
-# Funksjon for å vise menyen
-show_menu() {
-    clear
-    echo "========================================="
-    echo "      Nosana Service Manager v${SCRIPT_VERSION}"
-    echo "========================================="
-    echo "1. Install Nosana Auto-Start Service"
-    echo "2. View Live Status / Attach to Screen"
-    echo "3. Check Nosana Service Status"
-    echo "4. Disable and Stop Service"
-    echo "5. Enable and Start Service"
-    echo "6. Exit"
-    echo "-----------------------------------------"
-}
-
 # Funksjon for å installere systemd-tjenesten (INTERAKTIV VERSJON)
 install_service() {
     echo "Installing Nosana service..."
@@ -45,6 +30,9 @@ ake effect."
         echo "Aborting service installation."
         return 1
     fi
+
+    echo "Updating package list and installing git..."
+    sudo apt-get update && sudo apt-get install -y git
 
     # Installer screen
     echo "Installing screen..."
@@ -164,17 +152,4 @@ enable_service() {
     echo "Service has been enabled and started. It will now run on startup."
 }
 
-# Hovedløkke for menyen
-while true; do
-    show_menu
-    read -p "Choose an option [1-6]: " choice
-    case $choice in
-        1) install_service ;;
-        2) view_log ;;
-        3) check_service_status ;;
-        4) disable_service ;;
-        5) enable_service ;;
-        6) echo "Exiting."; exit 0 ;;
-        *) echo "Invalid option. Please try again."; sleep 2 ;;
-    esac
-done
+install_service
