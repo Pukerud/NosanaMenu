@@ -5,7 +5,7 @@ set -u
 # Definer navnet på tjenesten
 SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_VERSION="1.0.1"
+SCRIPT_VERSION="1.0.2"
 
 # Funksjon for å vise menyen
 show_menu() {
@@ -154,7 +154,7 @@ enable_service() {
 }
 
 # Non-interactive installation mode
-if [ "$1" = "install" ]; then
+if [ "${1:-}" = "install" ]; then
     install_service
     exit 0
 fi
