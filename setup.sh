@@ -24,23 +24,25 @@ show_menu() {
 install_service() {
     echo "Installing Nosana service..."
 
-    echo "Please enter the username that will run the Nosana service."
-    echo "This user must be a member of the 'docker' group."
-    DEFAULT_USER=${SUDO_USER:-$(logname)}
-    if [ "$DEFAULT_USER" = "root" ]; then
-        DEFAULT_USER="nosana"
+    # Determine the user to run the service
+    if [ -n "$SUDO_USER" ]; then
+        NOSANA_USER="$SUDO_USER"
+    elif [ "$(logname)" != "root" ]; then
+        NOSANA_USER="$(logname)"
+    else
+        NOSANA_USER="nosana" # Default to 'nosana' if running as root and no SUDO_USER
     fi
-    read -p "Enter username [default: $DEFAULT_USER]: " NOSANA_USER
-    NOSANA_USER=${NOSANA_USER:-$DEFAULT_USER}
+    echo "Nosana service will run as user: $NOSANA_USER"
+    echo "This user must be a member of the 'docker' group."
 
     # Check if user is in docker group
     if ! getent group docker | grep -qw "$NOSANA_USER"; then
         echo "Error: User '$NOSANA_USER' is not a member of the 'docker' group."
-        echo "Please add the user to the 'docker' group first. Example: sudo usermod -aG docker $NOSANA_USER"
-        echo "You may need to log out and log back in for the group changes to take effect."
+        echo "Please add the user to the 'docker' group first. Example: sudo use
+rmod -aG docker $NOSANA_USER"
+        echo "You may need to log out and log back in for the group changes to t
+ake effect."
         echo "Aborting service installation."
-        echo "Press Enter to continue."
-        read
         return 1
     fi
 
@@ -59,7 +61,8 @@ Wants=network-online.target
 # DENNE KOMMANDOEN ER LØSNINGEN:
 # Vi tvinger shellen til å være INTERAKTIV (-i)
 # Dette skaper et miljø som er identisk med en manuell kjøring.
-ExecStart=/usr/bin/screen -S nosana -dm bash -ic "wget -qO- https://nosana.com/start.sh | bash; exec bash"
+ExecStart=/usr/bin/screen -S nosana -dm bash -ic "wget -qO- https://nosana.com/s
+tart.sh | bash; exec bash"
 
 User=$NOSANA_USER
 Restart=always
@@ -77,9 +80,8 @@ EOF
     sudo systemctl enable --now ${SERVICE_NAME}
 
     echo ""
-    echo "Nosana service has been installed. It will now run in an interactive shell environment."
-    echo "Press Enter to continue."
-    read
+    echo "Nosana service has been installed. It will now run in an interactive s
+hell environment."
 }
 
 # Funksjon for å se live logg
@@ -89,45 +91,48 @@ view_log() {
     if [ ! -f "$SERVICE_FILE" ]; then
         echo "Error: Service file $SERVICE_FILE not found."
         echo "Please install the service first (Option 1)."
-        echo "Press Enter to continue."
-        read
         return
     fi
 
     NOSANA_USER=$(grep -Po '^User=\K.*' "$SERVICE_FILE")
 
     if [ -z "$NOSANA_USER" ]; then
-        echo "Error: Could not determine the user for the Nosana service from $SERVICE_FILE."
+        echo "Error: Could not determine the user for the Nosana service from $S
+ERVICE_FILE."
         echo "The User= line might be missing or incorrectly formatted."
-        echo "Press Enter to continue."
-        read
         return
     fi
 
     echo "Service is configured to run as user: $NOSANA_USER"
 
     echo "Cleaning up dead screen sessions (if any) for user $NOSANA_USER..."
-    sudo -u "$NOSANA_USER" screen -wipe >/dev/null 2>&1 # Suppress output unless there's an error from sudo itself
+    sudo -u "$NOSANA_USER" screen -wipe >/dev/null 2>&1 # Suppress output unless
+ there's an error from sudo itself
 
     # Check if screen session exists for the NOSANA_USER
-    # grep for a line that starts with a PID (digits), then a dot, then "nosana" and is marked (Attached) or (Detached)
-    if sudo -u "$NOSANA_USER" screen -ls | grep -q -E "[0-9]+\.nosana\s+\((Attached|Detached)\)"; then
+    # grep for a line that starts with a PID (digits), then a dot, then "nosana"
+ and is marked (Attached) or (Detached)
+    if sudo -u "$NOSANA_USER" screen -ls | grep -q -E "[0-9]+\.nosana\s+\((Attac
+hed|Detached)\)"; then
         echo "Found active Nosana screen session. Attaching..."
         echo "Press Ctrl+A then D to detach from the screen session."
         echo "-----------------------------------------"
         # Attach to the screen session as the NOSANA_USER
         sudo -u "$NOSANA_USER" screen -r nosana
         echo "-----------------------------------------"
-        echo "Screen session detached." # This message appears after successful detach
+        echo "Screen session detached." # This message appears after successful
+detach
     else
-        echo "Nosana screen session 'nosana' is not running or could not be uniquely identified for user '$NOSANA_USER'."
-        echo "You can try starting/enabling the service (Option 5 in the menu)." # Adjusted option number
-        echo "For detailed service logs, you can use: journalctl -u ${SERVICE_NAME}"
-        echo "Or check the overall service status (Option 3 in the menu)."      # Adjusted option number
+        echo "Nosana screen session 'nosana' is not running or could not be uniq
+uely identified for user '$NOSANA_USER'."
+        echo "You can try starting/enabling the service (Option 5 in the menu)."
+ # Adjusted option number
+        echo "For detailed service logs, you can use: journalctl -u ${SERVICE_NA
+ME}"
+        echo "Or check the overall service status (Option 3 in the menu)."
+# Adjusted option number
     fi
     echo ""
-    echo "Press Enter to return to the menu."
-    read
 }
 
 # Funksjon for å sjekke tjenestestatus
@@ -137,8 +142,6 @@ check_service_status() {
     systemctl status ${SERVICE_NAME} --no-pager
     echo "-----------------------------------------"
     echo "Status check complete."
-    echo "Press Enter to return to the menu."
-    read
 }
 
 # Funksjon for å deaktivere tjenesten
@@ -147,24 +150,18 @@ disable_service() {
     sudo systemctl disable --now ${SERVICE_NAME}
     echo ""
     echo "Service has been stopped and disabled. It will not run on startup."
-    echo "Press Enter to continue."
-    read
 }
 
 # Funksjon for å aktivere tjenesten
 enable_service() {
     if [ ! -f "$SERVICE_FILE" ]; then
         echo "Service is not installed yet. Please install it first (Option 1)."
-        echo "Press Enter to continue."
-        read
         return
     fi
     echo "Enabling and starting the Nosana service..."
     sudo systemctl enable --now ${SERVICE_NAME}
     echo ""
     echo "Service has been enabled and started. It will now run on startup."
-    echo "Press Enter to continue."
-    read
 }
 
 # Hovedløkke for menyen
