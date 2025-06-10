@@ -5,7 +5,7 @@ set -u
 # Definer navnet på tjenesten
 SERVICE_NAME="nosana.service"
 SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_VERSION="1.0.2"
+SCRIPT_VERSION="1.0.3"
 
 # Funksjon for å vise menyen
 show_menu() {
@@ -28,18 +28,20 @@ install_service() {
     echo "Installing Nosana service..."
 
     # Determine the user to run the service
-    if [ -n "$SUDO_USER" ]; then
+    if [[ $(id -u) -eq 0 ]]; then # If current effective user is root
+        NOSANA_USER="root"
+    elif [ -n "$SUDO_USER" ]; then # Else if SUDO_USER is set (e.g., non-root user used sudo)
         NOSANA_USER="$SUDO_USER"
-    elif [ "$(logname)" != "root" ]; then
+    elif [ -n "$(logname)" ] && [ "$(logname)" != "root" ]; then # Else if logname is set and not root
         NOSANA_USER="$(logname)"
-    else
-        NOSANA_USER="nosana" # Default to 'nosana' if running as root and no SUDO_USER
+    else # Fallback
+        NOSANA_USER="nosana"
     fi
     echo "Nosana service will run as user: $NOSANA_USER"
     echo "This user must be a member of the 'docker' group."
 
     # Check if user is in docker group
-    if ! getent group docker | grep -qw "$NOSANA_USER"; then
+    if [ "$NOSANA_USER" != "root" ] && ! getent group docker | grep -qw "$NOSANA_USER"; then
         echo "Error: User '$NOSANA_USER' is not a member of the 'docker' group."
         echo "Please add the user to the 'docker' group first. Example: sudo usermod -aG docker $NOSANA_USER"
         echo "You may need to log out and log back in for the group changes to take effect."
