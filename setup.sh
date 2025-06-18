@@ -2,10 +2,36 @@
 set -e
 set -u
 
-# Definer navnet på tjenesten
-SERVICE_NAME="nosana.service"
-SERVICE_FILE="/etc/systemd/system/${SERVICE_NAME}"
-SCRIPT_VERSION="1.1.0"
+# --- Dynamic TARGET_USER determination for menu display and service name construction ---
+if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+    TARGET_USER="$SUDO_USER"
+elif [ "$(logname)" != "root" ] && [ -n "$(logname)" ]; then
+    TARGET_USER="$(logname)"
+else
+    # Fallback if no suitable user is found for constructing service names.
+    # The individual setup_nosana_screen.sh will do more rigorous checks.
+    echo "INFO: Could not determine a specific non-root user for service name generation. Defaulting to 'user'."
+    echo "      If a service was installed for a specific user, its name might not match menu defaults."
+    TARGET_USER="user" # A generic fallback for menu display
+fi
+echo "INFO: Menu commands will be targeted for user: $TARGET_USER"
+
+# Also find screen path for the attach command
+SCREEN_PATH=$(which screen)
+if [ -z "$SCREEN_PATH" ]; then
+    echo "WARNING: 'screen' command not found. Option 2 (Attach to screen) might not work."
+    # Don't exit, as other menu options might still be useful.
+fi
+# --- End of TARGET_USER determination ---
+
+# Definer navnet på tjenesten og screen-sesjonen (bruker-spesifikk)
+SERVICE_NAME="nosana-${TARGET_USER}.service"
+SCREEN_SESSION_NAME="nosana_${TARGET_USER}"
+# SERVICE_FILE is not strictly needed globally anymore as setup_nosana_screen.sh handles its own path logic
+# However, check_service_status and enable_service might use it if they check for file existence.
+# For now, let's define it for compatibility with any such checks.
+SERVICE_FILE_PATH="/etc/systemd/system/${SERVICE_NAME}" # For functions that might check file existence
+SCRIPT_VERSION="1.2.0" # Updated version for new screen integration
 
 # Funksjon for å vise menyen
 show_menu() {
@@ -13,153 +39,123 @@ show_menu() {
     echo "========================================="
     echo "      Nosana Service Manager v${SCRIPT_VERSION}"
     echo "========================================="
-    echo "1. Install Nosana Auto-Start Service"
-    echo "2. View Live Status / Attach to Screen"
-    echo "3. Check Nosana Service Status"
-    echo "4. Disable and Stop Service"
-    echo "5. Enable and Start Service"
+    echo " Target User: $TARGET_USER"
+    echo " Service Name: $SERVICE_NAME"
+    echo " Screen Session: $SCREEN_SESSION_NAME"
+    echo "-----------------------------------------"
+    echo "1. Install/Reconfigure Nosana Service (via setup_nosana_screen.sh)"
+    echo "2. Attach to Nosana Screen (${SCREEN_SESSION_NAME})"
+    echo "3. Check Nosana Service Status (${SERVICE_NAME})"
+    echo "4. Disable and Stop Service (${SERVICE_NAME})"
+    echo "5. Enable and Start Service (${SERVICE_NAME})"
     echo "6. Exit"
     echo "-----------------------------------------"
 }
 
-# Funksjon for å installere systemd-tjenesten (INTERAKTIV VERSJON)
+# Funksjon for å installere/konfigurere systemd-tjenesten via setup_nosana_screen.sh
 install_service() {
-    echo "DEBUG: Starting install_service"
-    echo "Installing Nosana service..."
+    echo "INFO: Attempting to install/reconfigure the Nosana service using setup_nosana_screen.sh..."
+    echo "      This will run setup_nosana_screen.sh with sudo."
+    if [ -f ./setup_nosana_screen.sh ]; then
+        sudo bash ./setup_nosana_screen.sh
+        echo "INFO: Installation script finished. Check its output for status."
+        # Refresh TARGET_USER and related names in case setup_nosana_screen.sh was run for a *different* user
+        # than initially detected by this menu script (e.g. if sudo was used with -u option).
+        # This is a best-effort for the menu, the actual service will be per setup_nosana_screen.sh's logic.
+        if [ -n "${SUDO_USER:-}" ] && [ "$SUDO_USER" != "root" ]; then
+            TARGET_USER="$SUDO_USER"
+        elif [ "$(logname)" != "root" ] && [ -n "$(logname)" ]; then
+            TARGET_USER="$(logname)"
+        else
+            TARGET_USER="user"
+        fi
+        SERVICE_NAME="nosana-${TARGET_USER}.service"
+        SCREEN_SESSION_NAME="nosana_${TARGET_USER}"
+        SERVICE_FILE_PATH="/etc/systemd/system/${SERVICE_NAME}"
+        echo "INFO: Menu service/screen names updated to reflect user '$TARGET_USER'."
 
-    # Determine the user to run the service
-    if [[ $(id -u) -eq 0 ]]; then # If current effective user is root
-        NOSANA_USER="root"
-    elif [ -n "$SUDO_USER" ]; then # Else if SUDO_USER is set (e.g., non-root user used sudo)
-        NOSANA_USER="$SUDO_USER"
-    elif [ -n "$(logname)" ] && [ "$(logname)" != "root" ]; then # Else if logname is set and not root
-        NOSANA_USER="$(logname)"
-    else # Fallback
-        NOSANA_USER="nosana"
+    else
+        echo "ERROR: setup_nosana_screen.sh not found in the current directory."
+        echo "       Please ensure it is present and try again."
     fi
-    echo "Nosana service will run as user: $NOSANA_USER"
-    echo "This user must be a member of the 'docker' group."
-
-    # Check if user is in docker group
-    if [ "$NOSANA_USER" != "root" ] && ! getent group docker | grep -qw "$NOSANA_USER"; then
-        echo "Error: User '$NOSANA_USER' is not a member of the 'docker' group."
-        echo "Please add the user to the 'docker' group first. Example: sudo usermod -aG docker $NOSANA_USER"
-        echo "You may need to log out and log back in for the group changes to take effect."
-        echo "Aborting service installation."
-        return 1
-    fi
-
-    echo "Updating package list and installing git..."
-    sudo apt-get update && sudo apt-get install -y git
-
-    # Installer screen
-    echo "Installing screen..."
-    sudo apt-get update && sudo apt-get install -y screen
-
-    # Opprett tjenestefilen med sudo
-    sudo tee "$SERVICE_FILE" > /dev/null <<EOF
-[Unit]
-Description=Nosana Node
-After=network-online.target
-Wants=network-online.target
-
-[Service]
-ExecStart=/bin/bash -c "wget -qO /tmp/nosana_start_script_downloaded.sh https://nosana.com/start.sh && chmod +x /tmp/nosana_start_script_downloaded.sh && /bin/bash /tmp/nosana_start_script_downloaded.sh >> /tmp/nosana_combined_run_log.txt 2>&1"
-User=$NOSANA_USER
-Restart=always
-RestartSec=10
-StandardOutput=journal
-StandardError=journal
-
-[Install]
-WantedBy=multi-user.target
-EOF
-
-    echo "Reloading systemd and starting the service..."
-    sudo systemctl daemon-reload
-    sudo systemctl enable --now ${SERVICE_NAME}
-
-    echo ""
-    echo "Nosana service has been installed. It will now run in an interactive shell environment."
+    echo "Press Enter to return to the menu..."
+    read -r
 }
 
-# Funksjon for å se live logg
-view_log() {
-    echo "DEBUG: Starting view_log"
-    echo "Checking for Nosana screen session..."
-
-    if [ ! -f "$SERVICE_FILE" ]; then
-        echo "Error: Service file $SERVICE_FILE not found."
-        echo "Please install the service first (Option 1)."
-        return
-    fi
-
-    NOSANA_USER=$(grep -Po '^User=\K.*' "$SERVICE_FILE")
-
-    if [ -z "$NOSANA_USER" ]; then
-        echo "Error: Could not determine the user for the Nosana service from $SERVICE_FILE."
-        echo "The User= line might be missing or incorrectly formatted."
-        return
-    fi
-
-    echo "Service is configured to run as user: $NOSANA_USER"
-
-    echo "Cleaning up dead screen sessions (if any) for user $NOSANA_USER..."
-    sudo -u "$NOSANA_USER" screen -wipe >/dev/null 2>&1
-
-    if sudo -u "$NOSANA_USER" screen -ls | grep -q -E "[0-9]+\.nosana\s+\((Attached|Detached)\)"; then
-        echo "Found active Nosana screen session. Attaching..."
-        echo "Press Ctrl+A then D to detach from the screen session."
-        echo "-----------------------------------------"
-        sudo -u "$NOSANA_USER" screen -r nosana
-        echo "-----------------------------------------"
-        echo "Screen session detached."
+# Funksjon for å koble til screen-sesjonen
+attach_to_screen() {
+    echo "INFO: Attempting to attach to screen session '$SCREEN_SESSION_NAME' for user '$TARGET_USER'..."
+    if [ -z "$SCREEN_PATH" ]; then
+        echo "ERROR: 'screen' command not found. Cannot attach."
     else
-        echo "Nosana screen session 'nosana' is not running or could not be uniquely identified for user '$NOSANA_USER'."
-        echo "You can try starting/enabling the service (Option 5 in the menu)."
-        echo "For detailed service logs, you can use: journalctl -u ${SERVICE_NAME}"
-        echo "Or check the overall service status (Option 3 in the menu)."
+        # Check if the screen session exists
+        # The -q option for grep suppresses output, we just need the exit status.
+        if sudo -u "$TARGET_USER" "$SCREEN_PATH" -ls | grep -q -E "[0-9]+\.${SCREEN_SESSION_NAME}\s+\((Attached|Detached)\)"; then
+            echo "INFO: Found active screen session. Attaching..."
+            echo "      Press Ctrl+A then D to detach."
+            echo "-----------------------------------------"
+            sudo -u "$TARGET_USER" "$SCREEN_PATH" -r "$SCREEN_SESSION_NAME"
+            echo "-----------------------------------------"
+            echo "INFO: Detached from screen session."
+        else
+            echo "INFO: Screen session '$SCREEN_SESSION_NAME' for user '$TARGET_USER' not found or not running."
+            echo "      You can try starting/enabling the service (Option 5)."
+            echo "      For detailed service logs, use: journalctl -u $SERVICE_NAME"
+        fi
     fi
-    echo ""
+    echo "Press Enter to return to the menu..."
+    read -r
 }
 
 # Funksjon for å sjekke tjenestestatus
 check_service_status() {
-    echo "DEBUG: Starting check_service_status"
-    echo "Checking Nosana service status (${SERVICE_NAME})..."
+    echo "INFO: Checking Nosana service status (${SERVICE_NAME})..."
     echo "-----------------------------------------"
-    systemctl status ${SERVICE_NAME} --no-pager
+    # Using systemctl status directly. If service doesn't exist, it will show that.
+    systemctl status "${SERVICE_NAME}" --no-pager || true # ensure script doesn't exit if service not found
     echo "-----------------------------------------"
-    echo "Status check complete."
+    echo "Status check complete. Press Enter to return to the menu..."
+    read -r
 }
 
 # Funksjon for å deaktivere tjenesten
 disable_service() {
-    echo "DEBUG: Starting disable_service"
-    echo "Disabling and stopping the Nosana service..."
-    sudo systemctl disable --now ${SERVICE_NAME}
+    echo "INFO: Disabling and stopping the Nosana service (${SERVICE_NAME})..."
+    sudo systemctl disable --now "${SERVICE_NAME}" || true # Or handle error more gracefully
     echo ""
-    echo "Service has been stopped and disabled. It will not run on startup."
+    echo "INFO: Service ${SERVICE_NAME} has been actioned for stop/disable."
+    echo "      If it was running, it should be stopped and disabled."
+    echo "      If it did not exist, no action was taken by systemd."
+    echo "Press Enter to return to the menu..."
+    read -r
 }
 
 # Funksjon for å aktivere tjenesten
 enable_service() {
-    echo "DEBUG: Starting enable_service"
-    if [ ! -f "$SERVICE_FILE" ]; then
-        echo "Service is not installed yet. Please install it first (Option 1)."
-        return
-    fi
-    echo "Enabling and starting the Nosana service..."
-    sudo systemctl enable --now ${SERVICE_NAME}
+    echo "INFO: Enabling and starting the Nosana service (${SERVICE_NAME})..."
+    # We assume that if we are enabling it, the setup_nosana_screen.sh has created the file.
+    # A direct check for SERVICE_FILE_PATH could be misleading if TARGET_USER detected by menu
+    # is not the one for whom service was installed. setup_nosana_screen.sh is the source of truth.
+    sudo systemctl enable --now "${SERVICE_NAME}" || true # Or handle error
     echo ""
-    echo "Service has been enabled and started. It will now run on startup."
+    echo "INFO: Service ${SERVICE_NAME} has been actioned for enable/start."
+    echo "      If it was configured correctly by the installation script, it should be running."
+    echo "Press Enter to return to the menu..."
+    read -r
 }
 
-# Non-interactive installation mode
-if [ "${1:-}" = "install" ]; then
-    install_service
-    exit 0
-fi
+# Non-interactive installation mode - DEPRECATED for this menu script
+# The main installation is now handled by setup_nosana_screen.sh
+# if [ "${1:-}" = "install" ]; then
+#    echo "INFO: Non-interactive install. Running setup_nosana_screen.sh..."
+#    if [ -f ./setup_nosana_screen.sh ]; then
+#        sudo bash ./setup_nosana_screen.sh
+#    else
+#        echo "ERROR: setup_nosana_screen.sh not found."
+#        exit 1
+#    fi
+#    exit 0
+# fi
 
 # Hovedløkke for menyen
 while true; do
@@ -167,11 +163,11 @@ while true; do
     read -p "Choose an option [1-6]: " choice
     case $choice in
         1) eval install_service ;;
-        2) eval view_log ;;
+        2) eval attach_to_screen ;; # Updated from view_log
         3) eval check_service_status ;;
         4) eval disable_service ;;
         5) eval enable_service ;;
         6) echo "Exiting."; exit 0 ;;
-        *) echo "Invalid option. Please try again."; sleep 2 ;;
+        *) echo "Invalid option. Please try again."; sleep 1 ;; # Reduced sleep
     esac
 done
