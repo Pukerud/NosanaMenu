@@ -49,7 +49,7 @@ echo "INFO: TARGET_USER is '$TARGET_USER' and is a member of the 'docker' group.
 START_SCRIPT_PATH="/usr/local/bin/start_nosana_${TARGET_USER}.sh"
 SUDOERS_FILE="/etc/sudoers.d/90-nosana-${TARGET_USER}-permissions"
 SERVICE_FILE_PATH="/etc/systemd/system/nosana-${TARGET_USER}.service"
-SCREEN_SESSION_NAME="nosana_${TARGET_USER}"
+SCREEN_SESSION_NAME="nosana"
 
 # --- Forberedelser ---
 echo "🚀 Starter konfigurasjon for Nosana med screen-metoden..."
